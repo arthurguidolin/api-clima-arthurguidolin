@@ -36,7 +36,9 @@ const CIDADE_PADRAO = "Curitiba";
 // Eventos: clique no botão e tecla Enter no campo de texto
 // -----------------------------------------------------------
 
-botaoBuscar.addEventListener("click", pesquisarClimaDaCidade);
+botaoBuscar.addEventListener("click", () => {
+  pesquisarClimaDaCidade();
+});
 
 inputCidade.addEventListener("keydown", (evento) => {
   if (evento.key === "Enter") {
