@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather App | Clima atual</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <main class="container">
+
+    <header class="cabecalho">
+      <p class="etiqueta">PREVISÃO AGORA</p>
+      <h1>API Clima</h1>
+      <p class="subtitulo">Consulte o clima atual de qualquer cidade.</p>
+    </header>
+
+    <section class="busca">
+      <div class="campo-busca">
+        <span class="icone-busca" aria-hidden="true">⌕</span>
+        <input
+          type="text"
+          id="input-cidade"
+          placeholder="Digite uma cidade..."
+          autocomplete="off"
+          aria-label="Nome da cidade"
+        />
+      </div>
+      <button id="botao-buscar" type="button">Buscar</button>
+    </section>
+
+    <p id="mensagem-carregando" class="mensagem-carregando escondido">
+      Buscando clima...
+    </p>
+
+    <p id="mensagem-erro" class="mensagem-erro escondido"></p>
+
+    <section id="card-clima" class="card-clima escondido">
+      <div class="card-cabecalho">
+        <h2 id="clima-cidade"></h2>
+        <span id="clima-horario" class="clima-horario"></span>
+      </div>
+
+      <p id="clima-local" class="clima-local"></p>
+
+      <div class="clima-principal">
+        <span id="clima-icone" class="clima-icone"></span>
+        <span id="clima-temperatura" class="clima-temperatura"></span>
+      </div>
+
+      <p id="clima-condicao" class="clima-condicao"></p>
+
+      <div class="clima-detalhes">
+        <div class="detalhe">
+          <span class="detalhe-icone" aria-hidden="true">💧</span>
+          <span class="detalhe-label">Sensação</span>
+          <span id="clima-sensacao" class="detalhe-valor"></span>
+        </div>
+        <div class="detalhe">
+          <span class="detalhe-icone" aria-hidden="true">◌</span>
+          <span class="detalhe-label">Umidade</span>
+          <span id="clima-umidade" class="detalhe-valor"></span>
+        </div>
+        <div class="detalhe">
+          <span class="detalhe-icone" aria-hidden="true">↝</span>
+          <span class="detalhe-label">Vento</span>
+          <span id="clima-vento" class="detalhe-valor"></span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
