@@ -39,6 +39,21 @@ body {
   gap: 24px;
 }
 
+.rodape {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0 8px;
+  color: var(--texto-suave);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.rodape-icone {
+  font-size: 0.95rem;
+}
+
 /* Cabeçalho */
 
 .cabecalho {
