@@ -1,7 +1,7 @@
 /* ===========================================================
    API CLIMA — script.js
    Responsável por toda a lógica: capturar entrada do usuário,
-   consultar as APIs da Open-Meteo e atualizar a tela.
+   consultar as APIs da Open-Meteo, atualizar a tela e o mapa.
    =========================================================== */
 
 // -----------------------------------------------------------
@@ -12,6 +12,7 @@ const inputCidade = document.getElementById("input-cidade");
 const botaoBuscar = document.getElementById("botao-buscar");
 const mensagemCarregando = document.getElementById("mensagem-carregando");
 const mensagemErro = document.getElementById("mensagem-erro");
+const resultadoContainer = document.getElementById("resultado-container");
 const cardClima = document.getElementById("card-clima");
 
 const elClimaCidade = document.getElementById("clima-cidade");
@@ -23,6 +24,13 @@ const elClimaCondicao = document.getElementById("clima-condicao");
 const elClimaSensacao = document.getElementById("clima-sensacao");
 const elClimaUmidade = document.getElementById("clima-umidade");
 const elClimaVento = document.getElementById("clima-vento");
+
+// -----------------------------------------------------------
+// Variáveis do Mapa Interativo (Leaflet.js)
+// -----------------------------------------------------------
+
+let instanciaMapa = null;
+let marcadorAtual = null;
 
 // -----------------------------------------------------------
 // URLs base das APIs (Open-Meteo, sem necessidade de chave)
@@ -75,7 +83,7 @@ async function pesquisarClimaDaCidade(nomeInformado = inputCidade.value.trim(), 
       cidadeEncontrada.longitude
     );
 
-    // 4. Exibir tudo no card
+    // 4. Exibir tudo no card e no mapa
     exibirClima(cidadeEncontrada, dadosClima);
   } catch (erro) {
     // Qualquer erro lançado nas funções acima cai aqui
@@ -197,7 +205,7 @@ function interpretarCondicaoClimatica(codigo) {
 
 // -----------------------------------------------------------
 // exibirClima(cidade, dadosClima)
-// Preenche o card com os dados recebidos das duas APIs
+// Preenche o card e atualiza o mapa com os dados recebidos
 // -----------------------------------------------------------
 
 function exibirClima(cidade, dadosClima) {
@@ -232,7 +240,70 @@ function exibirClima(cidade, dadosClima) {
   elClimaUmidade.textContent = `${atual.relative_humidity_2m}%`;
   elClimaVento.textContent = `${Math.round(atual.wind_speed_10m)} km/h`;
 
+  // Exibir a seção de resultados antes de ajustar o tamanho do mapa
   mostrarCard();
+
+  // Atualizar a localização e popup do mapa
+  atualizarMapa(cidade.latitude, cidade.longitude, cidade, dadosClima);
+}
+
+// -----------------------------------------------------------
+// atualizarMapa(latitude, longitude, cidade, dadosClima)
+// Gerencia a visão do mapa Leaflet, marcadores e popups
+// -----------------------------------------------------------
+
+function atualizarMapa(latitude, longitude, cidade, dadosClima) {
+  if (typeof L === "undefined") return;
+
+  const lat = parseFloat(latitude);
+  const lon = parseFloat(longitude);
+  const atual = dadosClima.current;
+  const condicao = interpretarCondicaoClimatica(atual.weather_code);
+
+  const conteudoPopup = `
+    <div class="popup-clima">
+      <h4>${cidade.name}</h4>
+      <div class="popup-temp">${Math.round(atual.temperature_2m)}°C</div>
+      <div class="popup-condicao">
+        <span>${condicao.icone}</span>
+        <span>${condicao.texto}</span>
+      </div>
+    </div>
+  `;
+
+  if (!instanciaMapa) {
+    // 1. Inicializa a instância do Leaflet no container #map
+    instanciaMapa = L.map("map").setView([lat, lon], 11);
+
+    // 2. Adiciona os tiles do OpenStreetMap
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(instanciaMapa);
+
+    // 3. Adiciona o marcador com popup
+    marcadorAtual = L.marker([lat, lon]).addTo(instanciaMapa);
+    marcadorAtual.bindPopup(conteudoPopup).openPopup();
+  } else {
+    // Reutiliza a instância existente com voo suave (flyTo) e atualiza o marcador
+    instanciaMapa.flyTo([lat, lon], 11, { duration: 1.2 });
+
+    if (marcadorAtual) {
+      marcadorAtual.setLatLng([lat, lon]);
+      marcadorAtual.setPopupContent(conteudoPopup).openPopup();
+    } else {
+      marcadorAtual = L.marker([lat, lon]).addTo(instanciaMapa);
+      marcadorAtual.bindPopup(conteudoPopup).openPopup();
+    }
+  }
+
+  // Garante que o mapa recalcule o tamanho após renderizar a div
+  setTimeout(() => {
+    if (instanciaMapa) {
+      instanciaMapa.invalidateSize();
+    }
+  }, 250);
 }
 
 // -----------------------------------------------------------
@@ -258,13 +329,14 @@ function esconderErro() {
 }
 
 function mostrarCard() {
-  cardClima.classList.remove("escondido");
+  resultadoContainer.classList.remove("escondido");
 }
 
 function esconderCard() {
-  cardClima.classList.add("escondido");
+  resultadoContainer.classList.add("escondido");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   pesquisarClimaDaCidade(CIDADE_PADRAO, `Carregando clima de ${CIDADE_PADRAO}...`);
 });
+

@@ -4,7 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>API Clima</title>
+  <!-- Leaflet.js CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
   <link rel="stylesheet" href="css/style.css" />
+  <!-- Leaflet.js Script -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
 </head>
 <body>
 
@@ -36,39 +49,45 @@
 
     <p id="mensagem-erro" class="mensagem-erro escondido"></p>
 
-    <section id="card-clima" class="card-clima escondido">
-      <div class="card-cabecalho">
-        <h2 id="clima-cidade"></h2>
-        <span id="clima-horario" class="clima-horario"></span>
-      </div>
-
-      <p id="clima-local" class="clima-local"></p>
-
-      <div class="clima-principal">
-        <span id="clima-icone" class="clima-icone"></span>
-        <span id="clima-temperatura" class="clima-temperatura"></span>
-      </div>
-
-      <p id="clima-condicao" class="clima-condicao"></p>
-
-      <div class="clima-detalhes">
-        <div class="detalhe">
-          <span class="detalhe-icone" aria-hidden="true">💧</span>
-          <span class="detalhe-label">Sensação</span>
-          <span id="clima-sensacao" class="detalhe-valor"></span>
+    <div id="resultado-container" class="resultado-container escondido">
+      <section id="card-clima" class="card-clima">
+        <div class="card-cabecalho">
+          <h2 id="clima-cidade"></h2>
+          <span id="clima-horario" class="clima-horario"></span>
         </div>
-        <div class="detalhe">
-          <span class="detalhe-icone" aria-hidden="true">◌</span>
-          <span class="detalhe-label">Umidade</span>
-          <span id="clima-umidade" class="detalhe-valor"></span>
+
+        <p id="clima-local" class="clima-local"></p>
+
+        <div class="clima-principal">
+          <span id="clima-icone" class="clima-icone"></span>
+          <span id="clima-temperatura" class="clima-temperatura"></span>
         </div>
-        <div class="detalhe">
-          <span class="detalhe-icone" aria-hidden="true">↝</span>
-          <span class="detalhe-label">Vento</span>
-          <span id="clima-vento" class="detalhe-valor"></span>
+
+        <p id="clima-condicao" class="clima-condicao"></p>
+
+        <div class="clima-detalhes">
+          <div class="detalhe">
+            <span class="detalhe-icone" aria-hidden="true">💧</span>
+            <span class="detalhe-label">Sensação</span>
+            <span id="clima-sensacao" class="detalhe-valor"></span>
+          </div>
+          <div class="detalhe">
+            <span class="detalhe-icone" aria-hidden="true">◌</span>
+            <span class="detalhe-label">Umidade</span>
+            <span id="clima-umidade" class="detalhe-valor"></span>
+          </div>
+          <div class="detalhe">
+            <span class="detalhe-icone" aria-hidden="true">↝</span>
+            <span class="detalhe-label">Vento</span>
+            <span id="clima-vento" class="detalhe-valor"></span>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section id="card-mapa" class="card-mapa">
+        <div id="map"></div>
+      </section>
+    </div>
 
     <footer class="rodape">
       <span class="rodape-icone" aria-hidden="true">☀️</span>
