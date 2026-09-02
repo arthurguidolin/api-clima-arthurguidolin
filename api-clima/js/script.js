@@ -253,31 +253,46 @@ function exibirClima(cidade, dadosClima) {
 // -----------------------------------------------------------
 
 async function pesquisarClimaPorCoordenadas(lat, lon) {
+  console.log("Coordenadas clicadas:", { lat, lon });
+
   esconderErro();
-  mensagemCarregando.textContent = "Buscando clima do local selecionado...";
+  mensagemCarregando.textContent = "Buscando clima do local clicado...";
   mostrarCarregamento(true);
   botaoBuscar.disabled = true;
 
-  // Atualiza a posição do marcador imediatamente para dar feedback instantâneo ao usuário
+  // Atualiza a posição do marcador imediatamente para dar feedback visual ao usuário
   if (marcadorAtual) {
     marcadorAtual.setLatLng([lat, lon]);
   }
 
   try {
-    // Busca a cidade (geocodificação reversa) e os dados climáticos simultaneamente
-    const [cidadeEncontrada, dadosClima] = await Promise.all([
-      obterCidadePorCoordenadas(lat, lon),
-      buscarClima(lat, lon),
-    ]);
+    // 1. Busca os dados meteorológicos via API Open-Meteo usando latitude e longitude
+    const dadosClima = await buscarClima(lat, lon);
 
-    // Atualiza o campo de busca com o nome da nova localidade encontrada
+    // 2. Tenta obter o nome da localidade via geocodificação reversa (sem travar se falhar)
+    let cidadeEncontrada;
+    try {
+      cidadeEncontrada = await obterCidadePorCoordenadas(lat, lon);
+    } catch (eGeocoding) {
+      console.warn("Falha na geocodificação reversa, usando fallback:", eGeocoding);
+      cidadeEncontrada = {
+        name: "Local selecionado",
+        admin1: `Lat: ${parseFloat(lat).toFixed(2)}`,
+        country: `Lon: ${parseFloat(lon).toFixed(2)}`,
+        latitude: lat,
+        longitude: lon,
+      };
+    }
+
+    // 3. Atualiza o campo de busca se encontrou um nome de cidade válido
     if (cidadeEncontrada.name && cidadeEncontrada.name !== "Local selecionado") {
       inputCidade.value = cidadeEncontrada.name;
     }
 
-    // Exibe o card e o mapa atualizados
+    // 4. Exibe os dados atualizados no card e no popup do mapa
     exibirClima(cidadeEncontrada, dadosClima);
   } catch (erro) {
+    console.error("Erro ao pesquisar clima por coordenadas:", erro);
     exibirErro(erro.message);
   } finally {
     mostrarCarregamento(false);
@@ -291,6 +306,7 @@ async function pesquisarClimaPorCoordenadas(lat, lon) {
 // -----------------------------------------------------------
 
 async function obterCidadePorCoordenadas(lat, lon) {
+  // 1. Tentar API da BigDataCloud
   try {
     const urlBigData = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=pt`;
     const resposta = await fetch(urlBigData);
@@ -301,25 +317,26 @@ async function obterCidadePorCoordenadas(lat, lon) {
         dados.city ||
         dados.locality ||
         dados.principalSubdivision ||
-        "Local selecionado";
+        dados.countryName;
 
-      return {
-        name: nomeCidade,
-        admin1: dados.principalSubdivision || "",
-        country: dados.countryName || "",
-        latitude: lat,
-        longitude: lon,
-      };
+      if (nomeCidade) {
+        return {
+          name: nomeCidade,
+          admin1: dados.principalSubdivision || "",
+          country: dados.countryName || "",
+          latitude: lat,
+          longitude: lon,
+        };
+      }
     }
   } catch (erro) {
-    // Se a primeira API falhar, continuamos para os fallbacks
+    console.warn("BigDataCloud reverse geocode indisponível:", erro);
   }
 
+  // 2. Tentar API Nominatim (OpenStreetMap) sem cabeçalhos restritos
   try {
     const urlNominatim = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=pt`;
-    const resposta = await fetch(urlNominatim, {
-      headers: { "User-Agent": "API-Clima-App/1.0" },
-    });
+    const resposta = await fetch(urlNominatim);
 
     if (resposta.ok) {
       const dados = await resposta.json();
@@ -331,20 +348,24 @@ async function obterCidadePorCoordenadas(lat, lon) {
         addr.municipality ||
         addr.suburb ||
         addr.county ||
-        "Local selecionado";
+        addr.state ||
+        addr.country;
 
-      return {
-        name: nomeCidade,
-        admin1: addr.state || addr.region || "",
-        country: addr.country || "",
-        latitude: lat,
-        longitude: lon,
-      };
+      if (nomeCidade) {
+        return {
+          name: nomeCidade,
+          admin1: addr.state || addr.region || "",
+          country: addr.country || "",
+          latitude: lat,
+          longitude: lon,
+        };
+      }
     }
   } catch (erro) {
-    // Fallback final caso não haja conexão com os serviços de geocodificação
+    console.warn("Nominatim reverse geocode indisponível:", erro);
   }
 
+  // 3. Fallback seguro caso nenhuma API de geocodificação reversa responda
   return {
     name: "Local selecionado",
     admin1: `Lat: ${parseFloat(lat).toFixed(2)}`,
@@ -360,7 +381,10 @@ async function obterCidadePorCoordenadas(lat, lon) {
 // -----------------------------------------------------------
 
 function atualizarMapa(latitude, longitude, cidade, dadosClima) {
-  if (typeof L === "undefined") return;
+  if (typeof L === "undefined") {
+    console.error("Leaflet.js (L) não está disponível no ambiente.");
+    return;
+  }
 
   const lat = parseFloat(latitude);
   const lon = parseFloat(longitude);
@@ -395,6 +419,7 @@ function atualizarMapa(latitude, longitude, cidade, dadosClima) {
 
     // 4. Registra evento de clique no mapa para buscar o clima do local clicado
     instanciaMapa.on("click", (evento) => {
+      console.log("Coordenadas clicadas:", evento.latlng);
       const cliqueLat = evento.latlng.lat;
       const cliqueLon = evento.latlng.lng;
       pesquisarClimaPorCoordenadas(cliqueLat, cliqueLon);
