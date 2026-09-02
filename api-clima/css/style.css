@@ -370,6 +370,7 @@ body {
   min-height: 360px;
   border-radius: 14px;
   z-index: 1;
+  cursor: crosshair;
 }
 
 /* Customização dos Popups do Leaflet */

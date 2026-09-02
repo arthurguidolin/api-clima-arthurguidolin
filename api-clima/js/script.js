@@ -248,8 +248,115 @@ function exibirClima(cidade, dadosClima) {
 }
 
 // -----------------------------------------------------------
+// pesquisarClimaPorCoordenadas(lat, lon)
+// Orquestra o fluxo de busca de clima acionado pelo clique no mapa
+// -----------------------------------------------------------
+
+async function pesquisarClimaPorCoordenadas(lat, lon) {
+  esconderErro();
+  mensagemCarregando.textContent = "Buscando clima do local selecionado...";
+  mostrarCarregamento(true);
+  botaoBuscar.disabled = true;
+
+  // Atualiza a posição do marcador imediatamente para dar feedback instantâneo ao usuário
+  if (marcadorAtual) {
+    marcadorAtual.setLatLng([lat, lon]);
+  }
+
+  try {
+    // Busca a cidade (geocodificação reversa) e os dados climáticos simultaneamente
+    const [cidadeEncontrada, dadosClima] = await Promise.all([
+      obterCidadePorCoordenadas(lat, lon),
+      buscarClima(lat, lon),
+    ]);
+
+    // Atualiza o campo de busca com o nome da nova localidade encontrada
+    if (cidadeEncontrada.name && cidadeEncontrada.name !== "Local selecionado") {
+      inputCidade.value = cidadeEncontrada.name;
+    }
+
+    // Exibe o card e o mapa atualizados
+    exibirClima(cidadeEncontrada, dadosClima);
+  } catch (erro) {
+    exibirErro(erro.message);
+  } finally {
+    mostrarCarregamento(false);
+    botaoBuscar.disabled = false;
+  }
+}
+
+// -----------------------------------------------------------
+// obterCidadePorCoordenadas(lat, lon)
+// Realiza geocodificação reversa para encontrar o nome do local a partir das coordenadas
+// -----------------------------------------------------------
+
+async function obterCidadePorCoordenadas(lat, lon) {
+  try {
+    const urlBigData = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=pt`;
+    const resposta = await fetch(urlBigData);
+
+    if (resposta.ok) {
+      const dados = await resposta.json();
+      const nomeCidade =
+        dados.city ||
+        dados.locality ||
+        dados.principalSubdivision ||
+        "Local selecionado";
+
+      return {
+        name: nomeCidade,
+        admin1: dados.principalSubdivision || "",
+        country: dados.countryName || "",
+        latitude: lat,
+        longitude: lon,
+      };
+    }
+  } catch (erro) {
+    // Se a primeira API falhar, continuamos para os fallbacks
+  }
+
+  try {
+    const urlNominatim = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=pt`;
+    const resposta = await fetch(urlNominatim, {
+      headers: { "User-Agent": "API-Clima-App/1.0" },
+    });
+
+    if (resposta.ok) {
+      const dados = await resposta.json();
+      const addr = dados.address || {};
+      const nomeCidade =
+        addr.city ||
+        addr.town ||
+        addr.village ||
+        addr.municipality ||
+        addr.suburb ||
+        addr.county ||
+        "Local selecionado";
+
+      return {
+        name: nomeCidade,
+        admin1: addr.state || addr.region || "",
+        country: addr.country || "",
+        latitude: lat,
+        longitude: lon,
+      };
+    }
+  } catch (erro) {
+    // Fallback final caso não haja conexão com os serviços de geocodificação
+  }
+
+  return {
+    name: "Local selecionado",
+    admin1: `Lat: ${parseFloat(lat).toFixed(2)}`,
+    country: `Lon: ${parseFloat(lon).toFixed(2)}`,
+    latitude: lat,
+    longitude: lon,
+  };
+}
+
+// -----------------------------------------------------------
 // atualizarMapa(latitude, longitude, cidade, dadosClima)
-// Gerencia a visão do mapa Leaflet, marcadores e popups
+// Gerencia a visão do mapa Leaflet, marcadores, popups e eventos
 // -----------------------------------------------------------
 
 function atualizarMapa(latitude, longitude, cidade, dadosClima) {
@@ -285,6 +392,13 @@ function atualizarMapa(latitude, longitude, cidade, dadosClima) {
     // 3. Adiciona o marcador com popup
     marcadorAtual = L.marker([lat, lon]).addTo(instanciaMapa);
     marcadorAtual.bindPopup(conteudoPopup).openPopup();
+
+    // 4. Registra evento de clique no mapa para buscar o clima do local clicado
+    instanciaMapa.on("click", (evento) => {
+      const cliqueLat = evento.latlng.lat;
+      const cliqueLon = evento.latlng.lng;
+      pesquisarClimaPorCoordenadas(cliqueLat, cliqueLon);
+    });
   } else {
     // Reutiliza a instância existente com voo suave (flyTo) e atualiza o marcador
     instanciaMapa.flyTo([lat, lon], 11, { duration: 1.2 });
